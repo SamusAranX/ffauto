@@ -102,8 +102,8 @@ def main():
 
 		print("#" * 40)
 
-	ffmpeg_args = ["ffmpeg", "-ss", args.ss,
-							"-i", f"{args.i}",
+	ffmpeg_args = ["ffmpeg", "-i", f"{args.i}",
+							"-ss", args.ss,
 							"-preset", PRESET,
 							"-vcodec", args.codec] + \
 							opt_audio + opt_framerate + \
