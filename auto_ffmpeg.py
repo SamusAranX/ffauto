@@ -21,7 +21,7 @@ def parse_ffmpeg_timestamp(timestamp):
 			except ValueError:
 				continue
 
-		return (parsed - zero).total_seconds()
+		return round((parsed - zero).total_seconds(), 4)
 	else:
 		return 0
 
@@ -47,7 +47,7 @@ def main():
 
 	CRF_X264 = 20
 	CRF_X265 = 24
-	PRESET = "slower" if not args.debug else "ultrafast"
+	PRESET = "slow" if not args.debug else "ultrafast"
 
 	codec_options = {
 		"libx264": ["-crf", str(CRF_X264)],
@@ -61,21 +61,23 @@ def main():
 	start_secs = parse_ffmpeg_timestamp(args.ss)
 	duration_secs = parse_ffmpeg_timestamp(args.t) if args.t else 0
 
+	fadeout_start = round(start_secs + duration_secs - float(args.fadeout), 4)
+
 	filter_scale = f"scale=-1:{int(args.height)}:flags=lanczos" if args.height else None
 
 	filter_fixrgb = None
 	opt_fixrgb = []
 	if args.fixrgb == "1":
-		filter_fixrgb = "scale=in_range=tv:out_range=pc"
 		opt_fixrgb = ["-colorspace", "bt709", "-color_range", "jpeg", "-color_primaries", "bt709", "-color_trc", "bt709"]
 	elif args.fixrgb == "2":
+		filter_fixrgb = "scale=in_range=tv:out_range=pc"
 		opt_fixrgb = ["-colorspace", "bt709", "-color_range", "jpeg", "-color_primaries", "bt709", "-color_trc", "bt709"]
 
 	filter_vfadein = f"fade=t=in:st={start_secs}:d={args.fadein}" if args.fadein else None
-	filter_vfadeout = f"fade=t=out:st={start_secs + duration_secs - float(args.fadeout)}:d={args.fadeout}" if args.fadeout else None
+	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
 	filter_afadein = f"afade=t=in:st={start_secs}:d={args.fadein}:curve=ihsin" if args.fadein else None
-	filter_afadeout = f"afade=t=out:st={start_secs + duration_secs - float(args.fadeout)}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
+	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
 
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
 	filter_afade = ",".join(filter(None, [filter_afadein, filter_afadeout]))
@@ -114,6 +116,7 @@ def main():
 							["-y", f"{args.out}"]
 
 	print(" ".join(ffmpeg_args))
+	print()
 	# sys.exit(0)
 
 	p = subprocess.Popen(ffmpeg_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
