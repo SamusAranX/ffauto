@@ -5,6 +5,7 @@ This is a Python 3 script that aims to make some things that are complicated to 
 
 ## What is this not?
 This isn't a script to make video encoding particularly efficient or video files particularly small. In fact, this script focuses more on video quality than on video size. If you're out to find the perfect size/quality ratio, this is not what you're looking for.
+
 Also, the encoding method that's used here isn't hardware-accelerated. This means that if you process a long video file with this script, you most likely won't be able to use the computer for anything else for *a while*.
     
 ## All options, explained:
