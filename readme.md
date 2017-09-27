@@ -5,6 +5,7 @@ This is a Python 3 script that aims to make some things that are complicated to 
 
 ## What is this not?
 This isn't a script to make video encoding particularly efficient or video files particularly small. In fact, this script focuses more on video quality than on video size. If you're out to find the perfect size/quality ratio, this is not what you're looking for.
+Also, the encoding method that's used here isn't hardware-accelerated. This means that if you process a long video file with this script, you most likely won't be able to use the computer for anything else for *a while*.
     
 ## All options, explained:
 * `-i`: The input video file.
@@ -36,3 +37,5 @@ This isn't a script to make video encoding particularly efficient or video files
     ./auto_ffmpeg.py -i VIDEO_FILE -ss 2:35 -t 35.5 OUT_FILE
 ### Resize a video to be 720 pixels high, add a fade-out effect lasting 0.5 seconds, limit the video length to 30 seconds, and embed a video title
     ./auto_ffmpeg.py -i VIDEO_FILE -vh 720 -fo 0.5 -t 30 -vt "title goes here" OUT_FILE
+### Add both a fade-in and a fade-out effect lasting half a second, limit the video to 50 seconds and prepare it for a YouTube upload
+    ./auto_ffmpeg.py -i VIDEO_FILE -f 0.5 -t 50 -yt OUT_FILE

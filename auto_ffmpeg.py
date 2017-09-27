@@ -54,7 +54,7 @@ def get_video_info(video):
 	return ffprobe_returnobj
 
 def main():
-	parser = argparse.ArgumentParser(description="Automate ffmpeg stuff", conflict_handler="resolve")
+	parser = argparse.ArgumentParser(description="Automate ffmpeg stuff")
 	parser.add_argument("-i", metavar="input", type=str, required=True, help="Input file")
 	parser.add_argument("-ss", metavar="start time", type=str, default="0", help="Start time")
 
@@ -62,7 +62,6 @@ def main():
 	duration_group.add_argument("-t", metavar="duration", type=str, default=None, help="Duration")
 	duration_group.add_argument("-to", metavar="position", type=str, default=None, help="Position")
 
-	parser.add_argument("-t", metavar="duration", type=str, default=None, help="Duration")
 	parser.add_argument("-vt", "--title", metavar="video title", type=str, default=None, help="Video title")
 	parser.add_argument("-m", "--mute", action="store_true", help="Mute audio")
 	parser.add_argument("-f", "--fade", metavar="fade duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
@@ -80,7 +79,7 @@ def main():
 
 	CRF_X264 = 20
 	CRF_X265 = 24
-	PRESET = "slow"
+	PRESET = "slower"
 
 	CODEC_OPTIONS = {
 		"libx264": ["-crf", str(CRF_X264)],
@@ -172,6 +171,7 @@ def main():
 	ffmpeg_args = ["ffmpeg", "-i", f"{args.i}",
 							"-ss", args.ss,
 							"-preset", PRESET,
+							"-tune", "film",
 							"-vcodec", args.codec] + \
 							opt_audio + opt_framerate + \
 							opt_vfilter + opt_afilter + \
