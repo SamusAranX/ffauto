@@ -27,7 +27,7 @@ Also, the encoding method that's used here isn't hardware-accelerated. This mean
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
   * `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
   * `2`: `auto_ffmpeg.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
-* `--debug`: Uses the ffmpeg preset `ultrafast` instead of the default `slower` and prints some additional debugging info.
+* `--debug`: Prints some additional debugging info and requires a keypress before actually starting to process video files.
 
 ## About hardware acceleration:
 If you enable hardware acceleration, videos will be processed much faster, but resulting files will be much larger as well.
