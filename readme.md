@@ -21,13 +21,20 @@ Also, the encoding method that's used here isn't hardware-accelerated. This mean
   * `-fo/--fadeout`: Applies a fade-out to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
 * `-vh/--height`: Resizes the video to be this many pixels high using Lanczos interpolation, preserving the aspect ratio. Expects a positive integer argument.
   * The lack of an option to resize to a certain width is intentional.
-* `-r`: Changes the output video's framerate. Identical to ffmpeg's `-r` option.
 * `-c/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
-* `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings.
+* `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings. Can't be used with hardware acceleration.
+* `-hw/--hardware`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt`.
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
   * `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
   * `2`: `auto_ffmpeg.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
 * `--debug`: Uses the ffmpeg preset `ultrafast` instead of the default `slower` and prints some additional debugging info.
+
+## About hardware acceleration:
+If you enable hardware acceleration, videos will be processed much faster, but resulting files will be much larger as well.
+On my PC, with an i7-6700K and a GTX 1070, downscaling an ~18 second 4K video to 720p and applying a fade out filter takes:
+* about 33 seconds using libx264 on the CPU, resulting in a 19 MB file
+* about 7 seconds when using the GPU, resulting in a 50 MB file
+Don't be surprised if video files you create using hardware acceleration are three times as large as expected.
 
 ## Usage examples:
 ### Skip the first x seconds of a video
