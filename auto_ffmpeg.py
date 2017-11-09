@@ -185,7 +185,7 @@ def main():
 	CODEC_OPTIONS = {
 		"libx264": f"-crf {CRF_X264} -preset {PRESET} -tune film -profile:v high".split(" ") + opt_fixrgb + opt_youtube,
 		"libx265": f"-crf {CRF_X265}".split(" "),
-		"h264_nvenc": f"-preset {PRESET} -profile:v high -level 5.1 -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 32 -spatial-aq true -temporal-aq true -aq-strength 15".split(" ")
+		"h264_nvenc": f"-preset {PRESET} -profile:v high -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 48 -spatial-aq true -temporal-aq true -aq-strength 8".split(" ")
 	}
 
 	ffmpeg_args = ["ffmpeg"] + opt_hwaccel + \
