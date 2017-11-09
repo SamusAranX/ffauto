@@ -147,8 +147,13 @@ def main():
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
 	if args.hardware:
-		filter_vfadein = f"hwdownload,format=nv12,{filter_vfadein},hwupload" if args.fadein else None
-		filter_vfadeout = f"hwdownload,format=nv12,{filter_vfadeout},hwupload" if args.fadeout else None
+		if args.fadein and args.fadeout:
+			# override if both fades are set to avoid multiple hwupload/hwdownloads
+			filter_vfadein = f"hwdownload,format=nv12,{filter_vfadein}"
+			filter_vfadeout = f"{filter_vfadeout},hwupload"
+		else:
+			filter_vfadein = f"hwdownload,format=nv12,{filter_vfadein},hwupload" if args.fadein else None
+			filter_vfadeout = f"hwdownload,format=nv12,{filter_vfadeout},hwupload" if args.fadeout else None
 
 	filter_afadein = f"afade=t=in:st={start_secs}:d={args.fadein}:curve=ihsin" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
@@ -178,7 +183,7 @@ def main():
 				   "-g", f"{video_info['r_frame_rate'] / 2}",
 				   "-bf", "2",
 				   "-pix_fmt", "yuv420p"] \
-				   if args.youtube and not args.hw else []
+				   if args.youtube and not args.hardware else []
 
 	opt_hwaccel = "-hwaccel cuvid -c:v h264_cuvid".split(" ") if args.hardware else []
 
@@ -206,7 +211,7 @@ def main():
 		print("Video fade filter:", filter_vfade)
 		print("Audio fade filter:", filter_afade)
 
-		if args.youtube and not args.hw:
+		if args.youtube and not args.hardware:
 			print("YouTube arguments:\n", " ".join(opt_youtube))
 
 		print("ffmpeg arguments:\n", " ".join(ffmpeg_args))
