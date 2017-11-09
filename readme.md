@@ -22,7 +22,7 @@ Also, the encoding method that's used here isn't hardware-accelerated. This mean
 * `-vh/--height`: Resizes the video to be this many pixels high using Lanczos interpolation, preserving the aspect ratio. Expects a positive integer argument.
   * The lack of an option to resize to a certain width is intentional.
 * `-c/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
-* `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings. Can't be used with hardware acceleration.
+* `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings. Only works with libx264 and can't be used with hardware acceleration.
 * `-hw/--hardware`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt`.
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
   * `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
