@@ -19,15 +19,17 @@ def parse_ffmpeg_timestamp(timestamp, debug):
 		return parsed
 	except ValueError:
 		zero = dt(1900,1,1)
+		ret_val = -1
 		for fmt in timestamp_formats:
 			try:
 				parsed = dt.strptime(timestamp, fmt)
+				ret_val = round((parsed - zero).total_seconds(), 4)
 				if debug:
-					print(f"Parsed timestamp {timestamp} with {fmt}")
+					print(f"Parsed timestamp {timestamp} with {fmt} and got {ret_val}")
 			except ValueError:
 				continue
 
-		return round((parsed - zero).total_seconds(), 4)
+		return ret_val
 	else:
 		return 0
 
@@ -46,6 +48,10 @@ def get_video_info(video):
 
 	for item in ffprobe_results:
 		parts = item.split("=")
+		if parts[1] == "N/A":
+			ffprobe_returnobj[parts[0]] = -1
+			continue
+
 		if "/" in parts[1]:
 			partparts = parts[1].split("/")
 			ffprobe_returnobj[parts[0]] = round(float(partparts[0]) / float(partparts[1]), 2)
@@ -65,14 +71,17 @@ def main():
 	duration_group.add_argument("-t", metavar="duration", type=str, default=None, help="Duration")
 	duration_group.add_argument("-to", metavar="position", type=str, default=None, help="Position")
 
+	audio_group = parser.add_mutually_exclusive_group()
+	audio_group.add_argument("-m", "--mute", action="store_true", help="Mute audio")
+	audio_group.add_argument("-af", "--audio-force", action="store_true", help="Force convert audio")
+
 	parser.add_argument("-vt", "--title", metavar="video title", type=str, default=None, help="Video title")
-	parser.add_argument("-m", "--mute", action="store_true", help="Mute audio")
 	parser.add_argument("-f", "--fade", metavar="fade duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
 	parser.add_argument("-fi", "--fadein", metavar="fade in duration", type=str, default=None, help="Fade in duration in seconds")
 	parser.add_argument("-fo", "--fadeout", metavar="fade out duration", type=str, default=None, help="Fade out duration in seconds")
 	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-c", "--codec", type=str, choices=["libx264", "libx265"], default="libx264", help="Codec choice")
-	parser.add_argument("--fixrgb", type=str, default=None, help="Convert TV RGB range to PC RGB range (hacky)")
+	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
 	extra_group = parser.add_mutually_exclusive_group()
@@ -122,28 +131,28 @@ def main():
 	start_secs = parse_ffmpeg_timestamp(args.ss, args.debug)
 	if args.to:
 		duration_secs = parse_ffmpeg_timestamp(args.to, args.debug) - start_secs
-	if args.t:
+	elif args.t:
 		duration_secs = parse_ffmpeg_timestamp(args.t, args.debug)
 	else:
 		duration_secs = video_info["duration"] - start_secs
 
-	fadeout_start = round(start_secs + duration_secs - float(args.fadeout or 0), 4)
+	fadeout_start = round(duration_secs - float(args.fadeout or 0), 4)
 
 	if args.height:
 		if args.hardware:
 			filter_scale = f"scale_cuda=-1:{int(args.height)}"
 		else:
-			filter_scale = f"scale=-1:{int(args.height)}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp"
+			filter_scale = f"scale=-1:{int(args.height)}:flags=spline+accurate_rnd+full_chroma_int+full_chroma_inp"
 	else:
 		filter_scale = None
 
 	# Just set all the important parameters and hope that's enough (if fixrgb > 0)
-	opt_fixrgb = ["-colorspace", "bt709", "-color_range", "jpeg", "-color_primaries", "bt709", "-color_trc", "bt709"] if (args.fixrgb or 0) > 0 else []
+	opt_fixrgb = ["-colorspace", "bt709", "-color_range", "jpeg", "-color_primaries", "bt709", "-color_trc", "bt709"] if (int(args.fixrgb) or 0) > 0 else []
 
 	# Force the video output to full range RGB as well (if fixrgb == 2)
-	filter_fixrgb = "scale=in_range=tv:out_range=pc" if args.fixrgb == "2" else None
+	filter_fixrgb = "scale=in_range=tv:out_range=pc" if int(args.fixrgb) == 2 else None
 
-	filter_vfadein = f"fade=t=in:st={start_secs}:d={args.fadein}" if args.fadein else None
+	filter_vfadein = f"fade=t=in:st=0:d={args.fadein}" if args.fadein else None
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
 	if args.hardware:
@@ -155,7 +164,7 @@ def main():
 			filter_vfadein = f"hwdownload,format=nv12,{filter_vfadein},hwupload" if args.fadein else None
 			filter_vfadeout = f"hwdownload,format=nv12,{filter_vfadeout},hwupload" if args.fadeout else None
 
-	filter_afadein = f"afade=t=in:st={start_secs}:d={args.fadein}:curve=ihsin" if args.fadein else None
+	filter_afadein = f"afade=t=in:st=0:d={args.fadein}:curve=ihsin" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
 
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
@@ -165,11 +174,13 @@ def main():
 
 	opt_vcodec = args.codec
 
-	opt_acodec = ["-acodec", "copy"] if not (args.fadein or args.fadeout) else ["-acodec", "aac", "-b:a", "384k"]
+	convert_audio = args.audio_force or (args.fadein or args.fadeout)
+
+	opt_acodec = ["-acodec", "aac", "-b:a", "384k"] if convert_audio else ["-acodec", "copy"]
 	opt_audio = ["-an"] if args.mute else opt_acodec
 	opt_afilter = ["-af", filter_afade] if filter_afade and not args.mute else []
 
-	opt_duration = ["-t", str(duration_secs)] if args.t or args.to else []
+	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
 	opt_vfilter_joined = ",".join(filter(None, [filter_scale, filter_fixrgb, filter_vfade]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
@@ -194,8 +205,8 @@ def main():
 	}
 
 	ffmpeg_args = ["ffmpeg"] + opt_hwaccel + \
-					   ["-i", f"{args.i}",
-						"-ss", args.ss,
+					   ["-ss", args.ss,
+						"-i", f"{args.i}",
 						"-c:v", args.codec] + \
 						opt_audio + opt_afilter + \
 						CODEC_OPTIONS[args.codec] + \
@@ -205,9 +216,11 @@ def main():
 	if args.debug:
 		print("#" * 40)
 
+		print("Script arguments:\n", args)
+
 		print("ffprobe output:", video_info)
-		print("Start time in seconds:", start_secs)
-		print("Duration in seconds:", duration_secs)
+		print("Start time in seconds:", f"{start_secs:.4f}")
+		print("Duration in seconds:", f"{duration_secs:.4f}")
 		print("Video fade filter:", filter_vfade)
 		print("Audio fade filter:", filter_afade)
 
@@ -218,7 +231,6 @@ def main():
 
 		print("#" * 40)
 		input("Press Enter to continue...")
-		# sys.exit(0)
 
 	p = subprocess.Popen(ffmpeg_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
