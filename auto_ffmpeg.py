@@ -79,8 +79,9 @@ def main():
 	parser.add_argument("-f", "--fade", metavar="fade duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
 	parser.add_argument("-fi", "--fadein", metavar="fade in duration", type=str, default=None, help="Fade in duration in seconds")
 	parser.add_argument("-fo", "--fadeout", metavar="fade out duration", type=str, default=None, help="Fade out duration in seconds")
+	parser.add_argument("-c", "--crop", metavar="w:h:x:y", type=str, default=None, help="New video region")
 	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
-	parser.add_argument("-c", "--codec", type=str, choices=["libx264", "libx265"], default="libx264", help="Codec choice")
+	parser.add_argument("-vc", "--codec", type=str, choices=["libx264", "libx265"], default="libx264", help="Codec choice")
 	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
@@ -138,6 +139,11 @@ def main():
 
 	fadeout_start = round(duration_secs - float(args.fadeout or 0), 4)
 
+	if args.crop:
+		crop_params = args.crop.split(":")
+		if len(crop_params) == 4:
+			crop_width, crop_height, crop_x, crop_y = crop_params
+
 	if args.height:
 		if args.hardware:
 			filter_scale = f"scale_cuda=-1:{int(args.height)}"
@@ -167,6 +173,8 @@ def main():
 	filter_afadein = f"afade=t=in:st=0:d={args.fadein}:curve=ihsin" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
 
+	filter_crop = f"crop={crop_width}:{crop_height}:{crop_x}:{crop_y}" if args.crop else None
+
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
 	filter_afade = ",".join(filter(None, [filter_afadein, filter_afadeout]))
 
@@ -182,7 +190,7 @@ def main():
 
 	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
-	opt_vfilter_joined = ",".join(filter(None, [filter_scale, filter_fixrgb, filter_vfade]))
+	opt_vfilter_joined = ",".join(filter(None, [filter_crop, filter_scale, filter_fixrgb, filter_vfade]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
 	yt_index1 = closest(video_info["r_frame_rate"], YT_BITRATES.keys())

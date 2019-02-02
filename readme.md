@@ -19,9 +19,10 @@ Also, unless you explicitly enable it, the encoding method that's used here won'
 * `-f/--fade`: Applies both a fade-in and a fade-out to the output video. The duration in seconds is expected as an integer or a float.
   * `-fi/--fadein`: Applies a fade-in to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
   * `-fo/--fadeout`: Applies a fade-out to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
+* `-c/--crop`: Crops the video. Uses the same syntax as ffmpeg: width:height:x:y
 * `-vh/--height`: Resizes the video to be this many pixels high using Lanczos interpolation, preserving the aspect ratio. Expects a positive integer argument.
   * The lack of an option to resize to a certain width is intentional.
-* `-c/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
+* `-vc/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
 * `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings. Only works with libx264 and can't be used with hardware acceleration.
 * `-hw/--hardware`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt`.
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
