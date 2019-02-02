@@ -19,7 +19,7 @@ Also, unless you explicitly enable it, the encoding method that's used here won'
 * `-f/--fade`: Applies both a fade-in and a fade-out to the output video. The duration in seconds is expected as an integer or a float.
   * `-fi/--fadein`: Applies a fade-in to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
   * `-fo/--fadeout`: Applies a fade-out to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
-* `-c/--crop`: Crops the video. Uses the same syntax as ffmpeg: width:height:x:y
+* `-c/--crop`: Crops the video. Uses the same syntax as ffmpeg: `width:height:x:y`
 * `-vh/--height`: Resizes the video to be this many pixels high using Lanczos interpolation, preserving the aspect ratio. Expects a positive integer argument.
   * The lack of an option to resize to a certain width is intentional.
 * `-vc/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
