@@ -1,4 +1,4 @@
-# auto_ffmpeg.py
+# ffauto.py
 
 ## What's this?
 This is a Python 3 script that aims to make some things that are complicated to do with ffmpeg easier.
@@ -27,7 +27,7 @@ Also, unless you explicitly enable it, the encoding method that's used here won'
 * `-hw/--hardware`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt`.
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
   * `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
-  * `2`: `auto_ffmpeg.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
+  * `2`: `ffauto.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
 * `--debug`: Prints some additional debugging info and requires a keypress before actually starting to process video files.
 
 ## About hardware acceleration:
@@ -39,12 +39,12 @@ Don't be surprised if video files you create using hardware acceleration are thr
 
 ## Usage examples:
 ### Skip the first x seconds of a video
-    ./auto_ffmpeg.py -i VIDEO_FILE -ss x OUT_FILE
+    ./ffauto.py -i VIDEO_FILE -ss x OUT_FILE
 ### Only take the first x seconds of a video
-    ./auto_ffmpeg.py -i VIDEO_FILE -t x OUT_FILE
+    ./ffauto.py -i VIDEO_FILE -t x OUT_FILE
 ### Start at 2:35 minutes and take the next 35.5 seconds
-    ./auto_ffmpeg.py -i VIDEO_FILE -ss 2:35 -t 35.5 OUT_FILE
+    ./ffauto.py -i VIDEO_FILE -ss 2:35 -t 35.5 OUT_FILE
 ### Resize a video to be 720 pixels high, add a fade-out effect lasting 0.5 seconds, limit the video length to 30 seconds, and embed a video title
-    ./auto_ffmpeg.py -i VIDEO_FILE -vh 720 -fo 0.5 -t 30 -vt "title goes here" OUT_FILE
+    ./ffauto.py -i VIDEO_FILE -vh 720 -fo 0.5 -t 30 -vt "title goes here" OUT_FILE
 ### Add both a fade-in and a fade-out effect lasting half a second, limit the video to 50 seconds and prepare it for a YouTube upload
-    ./auto_ffmpeg.py -i VIDEO_FILE -f 0.5 -t 50 -yt OUT_FILE
+    ./ffauto.py -i VIDEO_FILE -f 0.5 -t 50 -yt OUT_FILE
