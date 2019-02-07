@@ -36,6 +36,7 @@ If you enable hardware acceleration, videos will be processed much faster, but r
 On my PC, with an i7-6700K and a GTX 1070, downscaling an ~18 second 4K video to 720p and applying a fade out filter takes:
 * about 33 seconds using libx264 on the CPU, resulting in a 19 MB file
 * about 7 seconds when using the GPU, resulting in a 50 MB file
+
 Don't be surprised if video files you create using hardware acceleration are three times as large as expected.
 
 ## Usage examples:
