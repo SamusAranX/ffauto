@@ -82,12 +82,14 @@ def main():
 	parser.add_argument("-c", "--crop", metavar="w:h:x:y", type=str, default=None, help="New video region")
 	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-vc", "--codec", type=str, choices=["libx264", "libx265"], default="libx264", help="Codec choice")
+	parser.add_argument("-ff", "--ffmpeg", type=str, default=None, help="passthrough arguments for ffmpeg")
 	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
 	extra_group = parser.add_mutually_exclusive_group()
 	extra_group.add_argument("-yt", "--youtube", action="store_true", help="YouTube mode (adds options to make YouTube happy)")
-	extra_group.add_argument("-hw", "--hardware", action="store_true", help="Enable hardware acceleration (Only Nvidia, experimental)")
+	extra_group.add_argument("-nv", "--nvidia", action="store_true", help="Enable hardware acceleration for Nvidia GPUs (experimental)")
+	extra_group.add_argument("-ap", "--apple", action="store_true", help="Enable hardware acceleration for macOS (experimental)")
 
 	parser.add_argument("out", type=str, help="out file")
 
@@ -124,8 +126,10 @@ def main():
 		args.fadein = args.fade
 		args.fadeout = args.fade
 
-	if args.hardware:
-		args.codec = "h264_nvenc"
+	if args.nvidia:
+		args.codec = "h264_cuvid"
+	elif args.apple:
+		args.codec = "h264_videotoolbox"
 
 	video_info = get_video_info(args.i)
 
@@ -145,7 +149,7 @@ def main():
 			crop_width, crop_height, crop_x, crop_y = crop_params
 
 	if args.height:
-		if args.hardware:
+		if args.nvidia:
 			filter_scale = f"scale_cuda=-1:{int(args.height)}"
 		else:
 			filter_scale = f"scale=-1:{int(args.height)}:flags=spline+accurate_rnd+full_chroma_int+full_chroma_inp"
@@ -161,7 +165,7 @@ def main():
 	filter_vfadein = f"fade=t=in:st=0:d={args.fadein}" if args.fadein else None
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
-	if args.hardware:
+	if args.nvidia:
 		if args.fadein and args.fadeout:
 			# override if both fades are set to avoid multiple hwupload/hwdownloads
 			filter_vfadein = f"hwdownload,format=nv12,{filter_vfadein}"
@@ -184,7 +188,7 @@ def main():
 
 	convert_audio = args.audio_force or (args.fadein or args.fadeout)
 
-	opt_acodec = ["-acodec", "aac", "-b:a", "384k"] if convert_audio else ["-acodec", "copy"]
+	opt_acodec = ["-c:a", "aac", "-b:a", "384k"] if convert_audio else ["-c:a", "copy"]
 	opt_audio = ["-an"] if args.mute else opt_acodec
 	opt_afilter = ["-af", filter_afade] if filter_afade and not args.mute else []
 
@@ -204,21 +208,26 @@ def main():
 				   "-pix_fmt", "yuv420p"] \
 				   if args.youtube and not args.hardware else []
 
-	opt_hwaccel = "-hwaccel cuvid -c:v h264_cuvid".split(" ") if args.hardware else []
+	opt_nv_hwaccel = "-hwaccel cuvid".split(" ") if args.nvidia else []
+	opt_ap_hwaccel = "-hwaccel videotoolbox".split(" ") if args.apple else []
 
 	CODEC_OPTIONS = {
-		"libx264": f"-crf {CRF_X264} -preset {PRESET} -tune film -profile:v high".split(" ") + opt_fixrgb + opt_youtube,
-		"libx265": f"-crf {CRF_X265}".split(" "),
-		"h264_nvenc": f"-preset {PRESET} -profile:v high -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 48 -spatial-aq true -temporal-aq true -aq-strength 8".split(" ")
+		"libx264": f"-crf {CRF_X264} -preset {PRESET} -tune film -profile high -level 5.2".split(" ") + opt_fixrgb + opt_youtube,
+		"libx265": f"-crf {CRF_X265} -preset {PRESET} -tune film -profile high -level 5.2".split(" "),
+		"h264_cuvid": f"-preset {PRESET} -profile high -level 5.2 -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 48 -spatial-aq true -temporal-aq true -aq-strength 8".split(" "),
+		"h264_videotoolbox": f"-profile high -level 5.1 -coder cabac".split(" ")
+
 	}
 
-	ffmpeg_args = ["ffmpeg"] + opt_hwaccel + \
+	ffmpeg_args = ["ffmpeg"] + \
+						opt_nv_hwaccel + opt_ap_hwaccel + \
 					   ["-ss", args.ss,
 						"-i", f"{args.i}",
 						"-c:v", args.codec] + \
 						opt_audio + opt_afilter + \
 						CODEC_OPTIONS[args.codec] + \
 						opt_vfilter + opt_metadata + opt_duration + \
+						(args.ffmpeg.split(" ") if args.ffmpeg else []) + \
 						["-y", f"{args.out}"]
 
 	if args.debug:
@@ -232,7 +241,7 @@ def main():
 		print("Video fade filter:", filter_vfade)
 		print("Audio fade filter:", filter_afade)
 
-		if args.youtube and not args.hardware:
+		if args.youtube:
 			print("YouTube arguments:\n", " ".join(opt_youtube))
 
 		print("ffmpeg arguments:\n", " ".join(ffmpeg_args))

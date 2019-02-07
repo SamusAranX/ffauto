@@ -24,7 +24,8 @@ Also, unless you explicitly enable it, the encoding method that's used here won'
   * The lack of an option to resize to a certain width is intentional.
 * `-vc/--codec`: Accepts either "libx264" or "libx265". Default is "libx264".
 * `-yt/--youtube`: Applies a bunch of options to make the video as YouTube-friendly as possible.  No more "This video needs to be in a streamable format" warnings. Only works with libx264 and can't be used with hardware acceleration.
-* `-hw/--hardware`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt`.
+* `-nv/--nvidia`: Enables hardware acceleration for compatible Nvidia GPUs. Requires an ffmpeg build with support for the CUDA SDK, NVENC, and CUVID. Can't be used with `-yt` or `-ap`.
+* `-ap/--apple`: Enables hardware acceleration for macOS. Unless your CPU is exceptionally slow, conventional software-accelerated encoding will both be faster and better-looking. Can't be used with `-yt` or `-nv`.
 * `--fixrgb`: Basically a leftover command, but it might be useful for some. It accepts the integer values 1 or 2, depending on which it does this:
   * `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
   * `2`: `ffauto.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
