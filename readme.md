@@ -33,7 +33,7 @@ Also, unless you explicitly enable it, the encoding method that's used here won'
 	* `1`: Nothing is converted, only the color metadata is inserted. Useful in cases where the source material is implied to contain full range video but isn't read as such by other programs.
 	* `2`: `ffauto.py` will assume that the source video has a limited RGB range and will force-convert it to full RGB range. Then, it will embed all necessary color metadata just to be safe.
 * `-c/--crop`: Crops the video. Uses the same syntax as ffmpeg: `width:height:x:y`
-* `-vh/--height`: Resizes the video to be this many pixels high using Lanczos interpolation, preserving the aspect ratio. Expects a positive number. Final video height is rounded to the next even number.
+* `-vh/--height`: Resizes the video to be this many pixels high, preserving the aspect ratio. Expects a positive number. Final video height is rounded to the next even number.
 	* To use scaling factors instead of absolute pixel heights, append an "x" to the argument. For example, `-vh 0.5x` will halve a video's height.
 * `-f/--fade`: Applies both a fade-in and a fade-out to the output video. The duration in seconds is expected as a number.
 	* `-fi/--fadein`: Applies a fade-in to the output video. Takes the same arguments as `-f`. Is ignored if `-f` is present.
