@@ -94,13 +94,16 @@ def start_ffmpeg(args, debug):
 				end = time.time()
 				print(f"ffmpeg completed in {time.strftime('%H:%M:%S', time.gmtime(end - start))}")
 			else:
-				print(f"ffmpeg has terminated with code {p.returncode}")
+				return False, p.returncode
+
 			break
 
 		if line != oldline:
 			print(line)
 
 		oldline = line
+
+	return True, 0
 
 def main():
 	FAST_SEEK = False
@@ -154,6 +157,7 @@ def main():
 	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-ff", "--ffmpeg", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-gp", "--gif-palette", type=str, default="256", help="Number of colors to use when generating a GIF palette")
+	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
 	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
@@ -241,7 +245,7 @@ def main():
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
 	filter_palettegen = f"palettegen=stats_mode=diff:reserve_transparent=0:max_colors={args.gif_palette}" if args.gif else None
-	filter_paletteuse = f"paletteuse=diff_mode=rectangle:dither=floyd_steinberg"
+	filter_paletteuse = f"paletteuse=diff_mode=rectangle:bayer_scale=0:dither={args.gif_dither}"
 
 	if args.nvidia:
 		if args.fadein and args.fadeout:
@@ -333,11 +337,15 @@ def main():
 						["-y", args.out]
 		print("Encoding output file…")
 
-	start_ffmpeg(ffmpeg_args, args.debug) # first pass
+	# first pass
+	success, returncode = start_ffmpeg(ffmpeg_args, args.debug)
+	if not success:
+		print(f"ffmpeg exited with code {returncode}.")
+		sys.exit(returncode)
 
+	# do second GIF creation pass
 	if args.gif:
 		print("Creating GIF…")
-		# do second GIF creation pass
 		opt_input += ["-i", palette_file]
 
 		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_vfade, filter_paletteuse]))
@@ -350,7 +358,10 @@ def main():
 						opt_vfilter + opt_metadata + opt_passthrough + \
 						["-y", args.out]
 
-		start_ffmpeg(ffmpeg_args, args.debug)
+		success, returncode = start_ffmpeg(ffmpeg_args, args.debug)
+		if not success:
+			print(f"ffmpeg exited with code {returncode}.")
+			sys.exit(returncode)
 
 		# clean up
 		os.remove(palette_file)
