@@ -68,8 +68,12 @@ def get_video_info(video, debug):
 		dividend, divisor = stream["r_frame_rate"].split("/")
 		stream["r_frame_rate"] = int(dividend)/int(divisor)
 
-	stream["duration"] = float(stream["duration"])
-
+	if "duration" in stream:
+		stream["duration"] = float(stream["duration"])
+	else
+		print("You are most likely opening a faulty WEBM file. Be aware that -t and -to will most likely not do what you expect.")
+		stream["duration"] = 1000.0
+	
 	return stream
 
 def start_ffmpeg(args, debug):
