@@ -73,7 +73,7 @@ def get_video_info(video, debug):
 	else:
 		print("You are most likely opening a faulty WEBM file. Be aware that -t and -to will most likely not do what you expect.")
 		stream["duration"] = 1000.0
-	
+
 	return stream
 
 def start_ffmpeg(args, debug):
@@ -161,7 +161,7 @@ def main():
 	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-ff", "--ffmpeg", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-gp", "--gif-palette", type=str, default="256", help="Number of colors to use when generating a GIF palette")
-	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
+	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
 	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
