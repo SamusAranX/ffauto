@@ -167,6 +167,7 @@ def main():
 
 	extra_group = parser.add_mutually_exclusive_group()
 	extra_group.add_argument("-yt", "--youtube", action="store_true", help="YouTube mode (adds options to make YouTube happy)")
+	extra_group.add_argument("-gb", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
 	extra_group.add_argument("-nv", "--nvidia",  action="store_true", help="Enable hardware acceleration for Nvidia GPUs (experimental)")
 
 	extra_group.add_argument("--x264", action="store_true", help="Use libx264")
@@ -203,6 +204,10 @@ def main():
 		args.codec = "libwebp"
 	else:
 		args.codec = "libx264" # default codec
+
+	if args.garbage:
+		CRF_X264 = int(CRF_X264 * 1.4)
+		CRF_X265 = int(CRF_X265 * 1.4)
 
 	if args.gif:
 		# for GIF creation, fast seek needs to be enabled
