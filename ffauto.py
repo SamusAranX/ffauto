@@ -150,19 +150,21 @@ def main():
 	audio_group = parser.add_mutually_exclusive_group()
 	audio_group.add_argument("-m", "--mute", action="store_true", help="Mute audio")
 	audio_group.add_argument("-af", "--audio-force", action="store_true", help="Force convert audio")
-	audio_group.add_argument("-av", "--volume", metavar="audio volume", type=str, default=None, help="Audio volume adjustment factor")
+	audio_group.add_argument("-av", "--volume", metavar="volume", type=str, default=None, help="Audio volume adjustment factor")
 
-	parser.add_argument("-vt", "--title", metavar="video title", type=str, default=None, help="Video title")
-	parser.add_argument("-f", "--fade", metavar="fade duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
-	parser.add_argument("-fi", "--fadein", metavar="fade in duration", type=str, default=None, help="Fade in duration in seconds")
-	parser.add_argument("-fo", "--fadeout", metavar="fade out duration", type=str, default=None, help="Fade out duration in seconds")
+	parser.add_argument("-vt", "--title", metavar="title", type=str, default=None, help="Video title")
+	parser.add_argument("-f", "--fade", metavar="duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
+	parser.add_argument("-fi", "--fadein", metavar="duration", type=str, default=None, help="Fade in duration in seconds")
+	parser.add_argument("-fo", "--fadeout", metavar="duration", type=str, default=None, help="Fade out duration in seconds")
 	parser.add_argument("-c", "--crop", metavar="w:h:x:y", type=str, default=None, help="New video region")
-	parser.add_argument("-r", "--framerate", metavar="target framerate", type=str, default=None, help="New video frame rate")
-	parser.add_argument("-vh", "--height", metavar="video height", type=str, default=None, help="New video height (keeps aspect ratio)")
-	parser.add_argument("-ff", "--ffmpeg", type=str, default=None, help="Passthrough arguments for ffmpeg")
-	parser.add_argument("-gp", "--gif-palette", type=str, default="256", help="Number of colors to use when generating a GIF palette")
+	parser.add_argument("-r", "--framerate", metavar="framerate", type=str, default=None, help="New video frame rate")
+	parser.add_argument("-sf", "--slowmo-fps", metavar="framerate", type=str, default=None, help="Upsampled frame rate")
+	parser.add_argument("-sm", "--slowmo-mode", type=str, default="sensible", choices=["slow", "sensible", "fast"], help="Upsampling preset")
+	parser.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
+	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
+	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
-	parser.add_argument("--fixrgb", type=str, default="0", help="Convert TV RGB range to PC RGB range (hacky)")
+	parser.add_argument("--fixrgb", type=str, metavar="mode", default="0", choices=["0", "1", "2"], help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
 	extra_group = parser.add_mutually_exclusive_group()
@@ -269,6 +271,19 @@ def main():
 	filter_afadein = f"afade=t=in:st={fadein_start}:d={args.fadein}:curve=ihsin" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
 
+	# minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bilat:me=esa:search_param=32:vsbmc=1
+	ME_MODES = {
+		"fast": "hexbs",
+		"sensible": "umh",
+		"slow": "esa"
+	}
+	ME_RANGES = {
+		"fast": "8",
+		"sensible": "16",
+		"slow": "24"
+	}
+	filter_minterpolate = f"minterpolate=fps={args.slowmo_fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bilat:me={ME_MODES[args.slowmo_mode]}:search_param={ME_RANGES[args.slowmo_mode]}:vsbmc=1" if args.slowmo_fps else None
+
 	filter_fps = f"fps=fps={args.framerate}" if args.framerate else None
 
 	filter_crop = f"crop={crop_width}:{crop_height}:{crop_x}:{crop_y}" if args.crop else None
@@ -292,13 +307,13 @@ def main():
 
 	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
-	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_sharpen, filter_vfade, filter_palettegen]))
+	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_palettegen]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
 	yt_index1 = closest(video_info["r_frame_rate"], YT_BITRATES.keys())
 	yt_index2 = closest(video_info["height"], YT_BITRATES[yt_index1].keys())
 	yt_bitrate = YT_BITRATES[yt_index1][yt_index2]
-	opt_youtube = ["-movflags", "faststart",
+	opt_youtube = ["-movflags", "+faststart",
 				   "-maxrate", yt_bitrate,
 				   "-bufsize", f"{round(int(yt_bitrate[:-1])*1.5)}M",
 				   "-g", f"{video_info['r_frame_rate'] / 2}",
