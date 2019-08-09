@@ -255,7 +255,7 @@ def main():
 	filter_vfadein = f"fade=t=in:st={fadein_start}:d={args.fadein}" if args.fadein else None
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
-	filter_palettegen = f"palettegen=stats_mode=diff:reserve_transparent=0:max_colors={args.gif_palette}" if args.gif else None
+	filter_palettegen = f"palettegen=stats_mode=diff:reserve_transparent=0:max_colors={args.gif_colors}" if args.gif else None
 	filter_paletteuse = f"paletteuse=diff_mode=rectangle:bayer_scale=0:dither={args.gif_dither}"
 
 	if args.nvidia:
