@@ -256,7 +256,7 @@ def main():
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
 	filter_palettegen = f"palettegen=stats_mode=diff:reserve_transparent=0:max_colors={args.gif_colors}" if args.gif else None
-	filter_paletteuse = f"paletteuse=diff_mode=rectangle:bayer_scale=0:dither={args.gif_dither}"
+	filter_paletteuse = f"paletteuse=diff_mode=rectangle:bayer_scale=1:dither={args.gif_dither}"
 
 	if args.nvidia:
 		if args.fadein and args.fadeout:
@@ -310,16 +310,19 @@ def main():
 	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_palettegen]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
-	yt_index1 = closest(video_info["r_frame_rate"], YT_BITRATES.keys())
-	yt_index2 = closest(video_info["height"], YT_BITRATES[yt_index1].keys())
-	yt_bitrate = YT_BITRATES[yt_index1][yt_index2]
-	opt_youtube = ["-movflags", "+faststart",
-				   "-maxrate", yt_bitrate,
-				   "-bufsize", f"{round(int(yt_bitrate[:-1])*1.5)}M",
-				   "-g", f"{video_info['r_frame_rate'] / 2}",
-				   "-bf", "2",
-				   "-pix_fmt", "yuv420p"] \
-				   if args.youtube else []
+	if args.youtube:
+		yt_index1 = closest(video_info["r_frame_rate"], YT_BITRATES.keys())
+		yt_index2 = closest(video_info["height"], YT_BITRATES[yt_index1].keys())
+		yt_bitrate = YT_BITRATES[yt_index1][yt_index2]
+		opt_youtube = ["-movflags", "+faststart",
+					   "-maxrate", yt_bitrate,
+					   "-bufsize", f"{round(int(yt_bitrate[:-1])*1.5)}M",
+					   "-g", f"{video_info['r_frame_rate'] / 2}",
+					   "-bf", "2",
+					   "-pix_fmt", "yuv420p"] \
+					   if args.youtube else []
+	else:
+		opt_youtube = []
 
 	opt_nv_hwaccel = "-hwaccel cuvid".split(" ") if args.nvidia else []
 	opt_hardware = opt_nv_hwaccel
@@ -333,10 +336,12 @@ def main():
 		"libwebp": f"-f webp -loop 0".split(" ")
 	}
 
+	opts_seek  = ["-ss", start_secs] if args.ss != "0" else []
+	opts_input = ["-i", args.i]
 	if FAST_SEEK:
-		opt_input = ["-ss", args.ss, "-i", args.i]
+		opt_input = opts_seek + opts_input
 	else:
-		opt_input = ["-i", args.i, "-ss", args.ss]
+		opt_input = opts_input + opts_seek
 
 	opt_input += opt_duration
 	opt_codec = CODEC_OPTIONS[args.codec]
