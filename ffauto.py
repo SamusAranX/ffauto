@@ -42,7 +42,7 @@ def parse_ffmpeg_timestamp(timestamp, debug):
 
 def get_video_info(video, debug):
 	ffprobe_args = ["ffprobe", "-i", video,
-							"-select_streams", "v:0",
+							# "-select_streams", "v:0",
 							"-hide_banner",
 							"-print_format", "json",
 							# "-loglevel", "quiet",
@@ -71,8 +71,16 @@ def get_video_info(video, debug):
 	if "duration" in stream:
 		stream["duration"] = float(stream["duration"])
 	else:
-		print("You are most likely opening a faulty WEBM file. Be aware that -t and -to will most likely not do what you expect.")
-		stream["duration"] = 1000.0
+		print("Falling back to duration heuristics")
+		for s in ffprobe_json["streams"]:
+			if "duration" in s:
+				stream["duration"] = float(s["duration"])
+				print(f"Found duration: {stream['duration']}")
+				break
+
+		if not "duration" in stream:
+			print("You are most likely opening a faulty WEBM file. Be aware that -t and -to will most likely not do what you expect.")
+			stream["duration"] = 1000.0
 
 	return stream
 
@@ -336,7 +344,7 @@ def main():
 		"libwebp": f"-f webp -loop 0".split(" ")
 	}
 
-	opts_seek  = ["-ss", start_secs] if args.ss != "0" else []
+	opts_seek  = ["-ss", str(round(start_secs, 4))] if args.ss != "0" else []
 	opts_input = ["-i", args.i]
 	if FAST_SEEK:
 		opt_input = opts_seek + opts_input
