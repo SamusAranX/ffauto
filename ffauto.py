@@ -172,12 +172,12 @@ def main():
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
+	parser.add_argument("-gb", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
 	parser.add_argument("--fixrgb", type=str, metavar="mode", default="0", choices=["0", "1", "2"], help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
 	extra_group = parser.add_mutually_exclusive_group()
 	extra_group.add_argument("-yt", "--youtube", action="store_true", help="YouTube mode (adds options to make YouTube happy)")
-	extra_group.add_argument("-gb", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
 	extra_group.add_argument("-nv", "--nvidia",  action="store_true", help="Enable hardware acceleration for Nvidia GPUs (experimental)")
 
 	extra_group.add_argument("--x264", action="store_true", help="Use libx264")
@@ -216,8 +216,8 @@ def main():
 		args.codec = "libx264" # default codec
 
 	if args.garbage:
-		CRF_X264 = int(CRF_X264 * 1.4)
-		CRF_X265 = int(CRF_X265 * 1.4)
+		CRF_X264 = int(CRF_X264 * 1.6)
+		CRF_X265 = int(CRF_X265 * 1.6)
 
 	if args.gif:
 		# for GIF creation, fast seek needs to be enabled
@@ -309,7 +309,8 @@ def main():
 
 	convert_audio = args.audio_force or args.volume or (args.fadein or args.fadeout)
 
-	opt_acodec = ["-c:a", "aac", "-b:a", "384k"] if convert_audio else ["-c:a", "copy"]
+	opt_acodec_bitrate = "192k" if args.garbage else "384k"
+	opt_acodec = ["-c:a", "aac", "-b:a", opt_acodec_bitrate] if convert_audio else ["-c:a", "copy"]
 	opt_audio = ["-an"] if args.mute else opt_acodec
 	opt_afilter = ["-af", filter_audio] if filter_audio and not args.mute else []
 
@@ -337,7 +338,7 @@ def main():
 
 	CODEC_OPTIONS = {
 		"libx264": f"-crf {CRF_X264} -preset {PRESET} -tune film -profile:v high -level 5.2".split(" ") + opt_fixrgb + opt_youtube,
-		"libx265": f"-crf {CRF_X265} -preset {PRESET} -tune film -profile:v high -level 5.2".split(" "),
+		"libx265": f"-crf {CRF_X265} -preset {PRESET}".split(" "),
 		"h264_cuvid": f"-preset {PRESET} -profile:v high -level 5.2 -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 48 -spatial-aq true -temporal-aq true -aq-strength 8".split(" "),
 		"gif": f"-f gif -loop 0".split(" "),
 		"apng": f"-f apng -plays 0".split(" "),
@@ -385,7 +386,7 @@ def main():
 		print("Creating GIF…")
 		opt_input += ["-i", palette_file]
 
-		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_vfade, filter_paletteuse]))
+		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_paletteuse]))
 		opt_vfilter = ["-lavfi", opt_vfilter_joined] if opt_vfilter_joined else []
 
 		ffmpeg_args = ["ffmpeg"] + opt_global + \
