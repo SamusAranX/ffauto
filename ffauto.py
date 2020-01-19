@@ -276,8 +276,8 @@ def main():
 			filter_vfadeout = f"hwdownload,format=nv12,{filter_vfadeout},hwupload" if args.fadeout else None
 
 	filter_avolume = f"volume={args.volume}" if args.volume else None
-	filter_afadein = f"afade=t=in:st={fadein_start}:d={args.fadein}:curve=ihsin" if args.fadein else None
-	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=ihsin" if args.fadeout else None
+	filter_afadein = f"afade=t=in:st={fadein_start}:d={args.fadein}:curve=losi" if args.fadein else None
+	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=losi" if args.fadeout else None
 
 	# minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bilat:me=esa:search_param=32:vsbmc=1
 	ME_MODES = {
