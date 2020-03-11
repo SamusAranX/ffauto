@@ -384,7 +384,7 @@ def main():
 	# do second GIF creation pass
 	if args.gif:
 		print("Creating GIF…")
-		opt_input += ["-i", palette_file]
+		opt_input = ["-i", args.i, "-i", palette_file] + opt_duration
 
 		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_paletteuse]))
 		opt_vfilter = ["-lavfi", opt_vfilter_joined] if opt_vfilter_joined else []
