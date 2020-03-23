@@ -63,10 +63,19 @@ def get_video_info(video, debug):
 		raise RuntimeError("ffprobe failed.")
 
 	stream = ffprobe_json["streams"][0]
+	try:
+		if "/" in stream["r_frame_rate"]:
+			dividend, divisor = stream["r_frame_rate"].split("/")
+			stream["r_frame_rate"] = int(dividend)/int(divisor)
+	except Exception as e:
+		if len(ffprobe_json["streams"]) < 2:
+			raise e
 
-	if "/" in stream["r_frame_rate"]:
-		dividend, divisor = stream["r_frame_rate"].split("/")
-		stream["r_frame_rate"] = int(dividend)/int(divisor)
+		stream = ffprobe_json["streams"][1]
+		if "/" in stream["r_frame_rate"]:
+			dividend, divisor = stream["r_frame_rate"].split("/")
+			stream["r_frame_rate"] = int(dividend)/int(divisor)
+
 
 	if "duration" in stream:
 		stream["duration"] = float(stream["duration"])
@@ -166,6 +175,7 @@ def main():
 	parser.add_argument("-fo", "--fadeout", metavar="duration", type=str, default=None, help="Fade out duration in seconds")
 	parser.add_argument("-c", "--crop", metavar="w:h:x:y", type=str, default=None, help="New video region")
 	parser.add_argument("-r", "--framerate", metavar="framerate", type=str, default=None, help="New video frame rate")
+	parser.add_argument("-l", "--loop", metavar="loop", type=str, default=None, help="Video loop count")
 	parser.add_argument("-sf", "--slowmo-fps", metavar="framerate", type=str, default=None, help="Upsampled frame rate")
 	parser.add_argument("-sm", "--slowmo-mode", type=str, default="sensible", choices=["slow", "sensible", "fast"], help="Upsampling preset")
 	parser.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
@@ -239,6 +249,10 @@ def main():
 		if len(crop_params) == 4:
 			crop_width, crop_height, crop_x, crop_y = crop_params
 
+	loop_amount = 0
+	if args.loop:
+		loop_amount = abs(int(args.loop)) - 1
+
 	if args.height:
 		if args.height.lower().endswith("x") or args.height.lower().endswith("×"):
 			new_video_height = int(float(video_info["height"]) * float(args.height[:-1]))
@@ -296,6 +310,8 @@ def main():
 
 	filter_crop = f"crop={crop_width}:{crop_height}:{crop_x}:{crop_y}" if args.crop else None
 
+	filter_loop = f"loop=loop={loop_amount}:size=32767:start=0"
+
 	filter_sharpen = "unsharp" if args.gif else None
 
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
@@ -316,7 +332,7 @@ def main():
 
 	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
-	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_palettegen]))
+	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_loop, filter_vfade, filter_palettegen]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
 	if args.youtube:
