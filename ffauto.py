@@ -182,7 +182,8 @@ def main():
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
-	parser.add_argument("-gb", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
+	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["single", "diff", "full"], help="palettegen stats_mode parameter")
+	parser.add_argument("-g", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
 	parser.add_argument("--fixrgb", type=str, metavar="mode", default="0", choices=["0", "1", "2"], help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
@@ -277,7 +278,7 @@ def main():
 	filter_vfadein = f"fade=t=in:st={fadein_start}:d={args.fadein}" if args.fadein else None
 	filter_vfadeout = f"fade=t=out:st={fadeout_start}:d={args.fadeout}" if args.fadeout else None
 
-	filter_palettegen = f"palettegen=stats_mode=diff:reserve_transparent=0:max_colors={args.gif_colors}" if args.gif else None
+	filter_palettegen = f"palettegen=stats_mode={args.gif_stats}:reserve_transparent=0:max_colors={args.gif_colors}" if args.gif else None
 	filter_paletteuse = f"paletteuse=diff_mode=rectangle:bayer_scale=1:dither={args.gif_dither}"
 
 	if args.nvidia:
