@@ -180,6 +180,7 @@ def main():
 	parser.add_argument("-sm", "--slowmo-mode", type=str, default="sensible", choices=["slow", "sensible", "fast"], help="Upsampling preset")
 	parser.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
+	parser.add_argument("-fs", "--fast-seek", action="store_true", help="Force-enables fast seek")
 	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
 	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["single", "diff", "full"], help="palettegen stats_mode parameter")
@@ -230,7 +231,7 @@ def main():
 		CRF_X264 = int(CRF_X264 * 1.6)
 		CRF_X265 = int(CRF_X265 * 1.6)
 
-	if args.gif:
+	if args.gif or args.fast_seek:
 		# for GIF creation, fast seek needs to be enabled
 		FAST_SEEK = True
 
