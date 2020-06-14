@@ -129,8 +129,8 @@ def start_ffmpeg(args, debug):
 def main():
 	FAST_SEEK = False
 
-	CRF_X264 = 20
-	CRF_X265 = 24
+	CRF_X264 = 17
+	CRF_X265 = 22
 	CQ_NVENC = 0
 	QP_NVENC = 21
 	PRESET = "slow"
@@ -168,6 +168,7 @@ def main():
 	audio_group.add_argument("-m", "--mute", action="store_true", help="Mute audio")
 	audio_group.add_argument("-af", "--audio-force", action="store_true", help="Force convert audio")
 	audio_group.add_argument("-av", "--volume", metavar="volume", type=str, default=None, help="Audio volume adjustment factor")
+	audio_group.add_argument("-n", "--normalize", action="store_true", help="Normalize volume")
 
 	parser.add_argument("-vt", "--title", metavar="title", type=str, default=None, help="Video title")
 	parser.add_argument("-f", "--fade", metavar="duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
@@ -251,6 +252,8 @@ def main():
 		crop_params = args.crop.split(":")
 		if len(crop_params) == 4:
 			crop_width, crop_height, crop_x, crop_y = crop_params
+		else:
+			raise RuntimeError("welp")
 
 	loop_amount = 0
 	if args.loop:
@@ -294,6 +297,7 @@ def main():
 			filter_vfadeout = f"hwdownload,format=nv12,{filter_vfadeout},hwupload" if args.fadeout else None
 
 	filter_avolume = f"volume={args.volume}" if args.volume else None
+	filter_normalize = "dynaudnorm=correctdc=1:altboundary=1:gausssize=101" if args.normalize else None
 	filter_afadein = f"afade=t=in:st={fadein_start}:d={args.fadein}:curve=losi" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=losi" if args.fadeout else None
 
@@ -319,7 +323,7 @@ def main():
 	filter_sharpen = "unsharp" if args.gif else None
 
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
-	filter_audio = ",".join(filter(None, [filter_avolume, filter_afadein, filter_afadeout]))
+	filter_audio = ",".join(filter(None, [filter_avolume, filter_normalize, filter_afadein, filter_afadeout]))
 
 	opt_passthrough = args.ffmpeg.split(" ") if args.ffmpeg else []
 
@@ -327,7 +331,7 @@ def main():
 
 	opt_global = "-loglevel warning -hide_banner".split(" ")
 
-	convert_audio = args.audio_force or args.volume or (args.fadein or args.fadeout)
+	convert_audio = args.audio_force or (filter_audio != None)
 
 	opt_acodec_bitrate = "192k" if args.garbage else "384k"
 	opt_acodec = ["-c:a", "aac", "-b:a", opt_acodec_bitrate] if convert_audio else ["-c:a", "copy"]
