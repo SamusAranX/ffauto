@@ -182,6 +182,12 @@ def main():
 	parser.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-fs", "--fast-seek", action="store_true", help="Force-enables fast seek")
+
+	parser.add_argument("--brightness", metavar="brightness", type=float, default=0.0, help="Brightness adjustment (default 0.0)")
+	parser.add_argument("--contrast", metavar="contrast", type=float, default=1.0, help="Contrast adjustment (default 1.0)")
+	parser.add_argument("--saturation", metavar="saturation", type=float, default=1.0, help="Saturation adjustment (default 1.0)")
+	parser.add_argument("--sharpen", action="store_true", help="Sharpen the output image")
+
 	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
 	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["single", "diff", "full"], help="palettegen stats_mode parameter")
@@ -320,7 +326,9 @@ def main():
 
 	filter_loop = f"loop=loop={loop_amount}:size=32767:start=0"
 
-	filter_sharpen = "unsharp" if args.gif else None
+	filter_eq = f"eq=brightness={args.brightness}:saturation={args.saturation}:contrast={args.contrast}"
+
+	filter_sharpen = "unsharp" if args.sharpen else None
 
 	filter_vfade = ",".join(filter(None, [filter_vfadein, filter_vfadeout]))
 	filter_audio = ",".join(filter(None, [filter_avolume, filter_normalize, filter_afadein, filter_afadeout]))
@@ -335,12 +343,12 @@ def main():
 
 	opt_acodec_bitrate = "192k" if args.garbage else "384k"
 	opt_acodec = ["-c:a", "aac", "-b:a", opt_acodec_bitrate] if convert_audio else ["-c:a", "copy"]
-	opt_audio = ["-an"] if args.mute else opt_acodec
+	opt_audio = ["-an"] if args.mute or args.gif else opt_acodec
 	opt_afilter = ["-af", filter_audio] if filter_audio and not args.mute else []
 
 	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
-	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_loop, filter_vfade, filter_palettegen]))
+	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_eq, filter_sharpen, filter_loop, filter_vfade, filter_palettegen]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
 	if args.youtube:
@@ -416,7 +424,7 @@ def main():
 
 		# opt_input = ["-i", args.i, "-i", palette_file]
 
-		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_sharpen, filter_vfade, filter_paletteuse]))
+		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_eq, filter_sharpen, filter_vfade, filter_paletteuse]))
 		opt_vfilter = ["-lavfi", opt_vfilter_joined] if opt_vfilter_joined else []
 
 		ffmpeg_args = ["ffmpeg"] + opt_global + \
