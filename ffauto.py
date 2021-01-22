@@ -8,6 +8,7 @@ import argparse
 import time
 import json
 import math
+from os.path import getsize
 from datetime import datetime as dt
 from tempfile import mkstemp
 
@@ -17,6 +18,42 @@ def closest(num, arr):
 
 def ceil_even(num):
 	return math.ceil(num / 2.0) * 2
+
+# from humanize package
+def readable_size(value, binary=False, gnu=False, format="%.1f"):
+	suffixes = {
+		"decimal": ("kB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"),
+		"binary": ("KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB"),
+		"gnu": "KMGTPEZY",
+	}
+
+	if gnu:
+		suffix = suffixes["gnu"]
+	elif binary:
+		suffix = suffixes["binary"]
+	else:
+		suffix = suffixes["decimal"]
+
+	base = 1024 if (gnu or binary) else 1000
+	bytes = float(value)
+	abs_bytes = abs(bytes)
+
+	if abs_bytes == 1 and not gnu:
+		return "%d Byte" % bytes
+	elif abs_bytes < base and not gnu:
+		return "%d Bytes" % bytes
+	elif abs_bytes < base and gnu:
+		return "%dB" % bytes
+
+	for i, s in enumerate(suffix):
+		unit = base ** (i + 2)
+		if abs_bytes < unit and not gnu:
+			return (format + " %s") % ((base * bytes / unit), s)
+		elif abs_bytes < unit and gnu:
+			return (format + "%s") % ((base * bytes / unit), s)
+	if gnu:
+		return (format + "%s") % ((base * bytes / unit), s)
+	return (format + " %s") % ((base * bytes / unit), s)
 
 def parse_ffmpeg_timestamp(timestamp, debug):
 	timestamp_formats = ["%H:%M:%S.%f", "%H:%M:%S", "%M:%S.%f", "%M:%S"]
@@ -341,7 +378,7 @@ def main():
 
 	convert_audio = args.audio_force or (filter_audio != None)
 
-	opt_acodec_bitrate = "192k" if args.garbage else "384k"
+	opt_acodec_bitrate = "128k" if args.garbage else "256k"
 	opt_acodec = ["-c:a", "aac", "-b:a", opt_acodec_bitrate] if convert_audio else ["-c:a", "copy"]
 	opt_audio = ["-an"] if args.mute or args.gif else opt_acodec
 	opt_afilter = ["-af", filter_audio] if filter_audio and not args.mute else []
@@ -441,6 +478,14 @@ def main():
 
 		# clean up
 		os.remove(palette_file)
+
+	try:
+		out_size = getsize(args.out)
+		size_decimal = readable_size(out_size)
+		size_binary = readable_size(out_size, binary=True)
+		print(f"Output file size: {size_decimal}/{size_binary}")
+	except Exception as e:
+		print("ERROR: Couldn't determine output file size!")
 
 if __name__ == '__main__':
 	main()
