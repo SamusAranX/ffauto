@@ -207,6 +207,10 @@ def main():
 	audio_group.add_argument("-av", "--volume", metavar="volume", type=str, default=None, help="Audio volume adjustment factor")
 	audio_group.add_argument("-n", "--normalize", action="store_true", help="Normalize volume")
 
+	size_group = parser.add_mutually_exclusive_group()
+	size_group.add_argument("-vw", "--width", metavar="width", type=str, default=None, help="New video width (keeps aspect ratio)")
+	size_group.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
+
 	parser.add_argument("-vt", "--title", metavar="title", type=str, default=None, help="Video title")
 	parser.add_argument("-f", "--fade", metavar="duration", type=str, default=None, help="Fade in/out duration in seconds. Takes priority over -fi and -fo")
 	parser.add_argument("-fi", "--fadein", metavar="duration", type=str, default=None, help="Fade in duration in seconds")
@@ -216,7 +220,6 @@ def main():
 	parser.add_argument("-l", "--loop", metavar="loop", type=str, default=None, help="Video loop count")
 	parser.add_argument("-sf", "--slowmo-fps", metavar="framerate", type=str, default=None, help="Upsampled frame rate")
 	parser.add_argument("-sm", "--slowmo-mode", type=str, default="sensible", choices=["slow", "sensible", "fast"], help="Upsampling preset")
-	parser.add_argument("-vh", "--height", metavar="height", type=str, default=None, help="New video height (keeps aspect ratio)")
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-fs", "--fast-seek", action="store_true", help="Force-enables fast seek")
 
@@ -229,6 +232,7 @@ def main():
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
 	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["single", "diff", "full"], help="palettegen stats_mode parameter")
 	parser.add_argument("-gt", "--gif-transparency", action="store_true", help="Enable GIF transparency")
+
 	parser.add_argument("-g", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
 	parser.add_argument("--fixrgb", type=str, metavar="mode", default="0", choices=["0", "1", "2"], help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
@@ -302,18 +306,30 @@ def main():
 	if args.loop:
 		loop_amount = abs(int(args.loop)) - 1
 
-	if args.height:
-		if args.height.lower().endswith("x") or args.height.lower().endswith("×"):
-			new_video_height = int(float(video_info["height"]) * float(args.height[:-1]))
-		else:
-			new_video_height = int(args.height)
+	if args.width or args.height:
+		new_size = args.width or args.height
 
-		new_video_height = ceil_even(new_video_height)
+		if args.width:
+			video_size = float(video_info["width"])
+		elif args.height:
+			video_size = float(video_info["height"])
+
+		if new_size.lower().endswith("x"):
+			new_size_parsed = int(video_size * float(new_size[:-1]))
+		else:
+			new_size_parsed = int(new_size)
+
+		new_size_parsed = ceil_even(new_size_parsed)
+
+		if args.width:
+			size_str = f"{new_size_parsed}:-2"
+		elif args.height:
+			size_str = f"-2:{new_size_parsed}"
 
 		if args.nvidia:
-			filter_scale = f"scale_cuda=-2:{new_video_height}"
+			filter_scale = f"scale_cuda={size_str}"
 		else:
-			filter_scale = f"scale=-2:{new_video_height}:flags=spline+accurate_rnd+full_chroma_int+full_chroma_inp"
+			filter_scale = f"scale={size_str}:flags=spline+accurate_rnd+full_chroma_int+full_chroma_inp"
 	else:
 		filter_scale = None
 
@@ -483,7 +499,12 @@ def main():
 		out_size = getsize(args.out)
 		size_decimal = readable_size(out_size)
 		size_binary = readable_size(out_size, binary=True)
-		print(f"Output file size: {size_decimal}/{size_binary}")
+
+		out_msg = f"Output file size: {size_decimal}/{size_binary}"
+		if out_size < 8388120: # magic number: max allowed file size on discord
+			print(f"{out_msg} (Discord safe)")
+		else:
+			print(f"{out_msg}")
 	except Exception as e:
 		print("ERROR: Couldn't determine output file size!")
 
