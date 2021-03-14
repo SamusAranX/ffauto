@@ -88,15 +88,12 @@ def get_video_info(video, debug):
 	p = subprocess.Popen(ffprobe_args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
 
 	ffprobe_output = p.stdout.read()
-	ffprobe_stderr = p.stderr.read()
 	ffprobe_json = json.loads(ffprobe_output)
 
 	if "streams" not in ffprobe_json:
 		if debug:
 			print(f"ffprobe args: {ffprobe_args}")
 			print(f"ffprobe output: {ffprobe_output}")
-			if ffprobe_stderr:
-				print(ffprobe_stderr)
 		raise RuntimeError("ffprobe failed.")
 
 	stream = ffprobe_json["streams"][0]
@@ -422,7 +419,7 @@ def main():
 	opt_hardware = opt_nv_hwaccel
 
 	CODEC_OPTIONS = {
-		"libx264": f"-crf {CRF_X264} -preset {PRESET} -tune film -profile:v high -level 5.2".split(" ") + opt_fixrgb + opt_youtube,
+		"libx264": f"-crf {CRF_X264} -preset {PRESET} -pix_fmt yuv420p -tune film -profile:v high -level 5.2".split(" ") + opt_fixrgb + opt_youtube,
 		"libx265": f"-crf {CRF_X265} -preset {PRESET}".split(" "),
 		"h264_cuvid": f"-preset {PRESET} -profile:v high -level 5.2 -rc constqp -qp {QP_NVENC} -strict_gop true -rc-lookahead 48 -spatial-aq true -temporal-aq true -aq-strength 8".split(" "),
 		"gif": f"-f gif -loop 0".split(" "),
