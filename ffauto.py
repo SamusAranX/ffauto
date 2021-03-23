@@ -215,10 +215,9 @@ def main():
 	parser.add_argument("-c", "--crop", metavar="w:h:x:y", type=str, default=None, help="New video region")
 	parser.add_argument("-r", "--framerate", metavar="framerate", type=str, default=None, help="New video frame rate")
 	parser.add_argument("-l", "--loop", metavar="loop", type=str, default=None, help="Video loop count")
-	parser.add_argument("-sf", "--slowmo-fps", metavar="framerate", type=str, default=None, help="Upsampled frame rate")
-	parser.add_argument("-sm", "--slowmo-mode", type=str, default="sensible", choices=["slow", "sensible", "fast"], help="Upsampling preset")
 	parser.add_argument("-ff", "--ffmpeg", metavar="args", type=str, default=None, help="Passthrough arguments for ffmpeg")
 	parser.add_argument("-fs", "--fast-seek", action="store_true", help="Force-enables fast seek")
+	parser.add_argument("-sm", "--scale-mode", type=str, default="spline", choices=["bilinear", "bicubic", "neighbor", "area", "bicublin", "gauss", "sinc", "lanczos", "spline"], help="Scaling algorithm")
 
 	parser.add_argument("--brightness", metavar="brightness", type=float, default=0.0, help="Brightness adjustment (default 0.0)")
 	parser.add_argument("--contrast", metavar="contrast", type=float, default=1.0, help="Contrast adjustment (default 1.0)")
@@ -227,7 +226,7 @@ def main():
 
 	parser.add_argument("-gc", "--gif-colors", metavar="colors", type=str, default="256", help="Number of colors to use when generating a GIF palette")
 	parser.add_argument("-gd", "--gif-dither", type=str, default="floyd_steinberg", choices=["none", "bayer", "heckbert", "floyd_steinberg", "sierra2", "sierra2_4a"], help="GIF dither algorithm to use")
-	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["single", "diff", "full"], help="palettegen stats_mode parameter")
+	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["diff", "full"], help="palettegen stats_mode parameter")
 	parser.add_argument("-gt", "--gif-transparency", action="store_true", help="Enable GIF transparency")
 
 	parser.add_argument("-g", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
@@ -326,7 +325,7 @@ def main():
 		if args.nvidia:
 			filter_scale = f"scale_cuda={size_str}"
 		else:
-			filter_scale = f"scale={size_str}:flags=spline+accurate_rnd+full_chroma_int+full_chroma_inp"
+			filter_scale = f"scale={size_str}:flags={args.scale_mode}+accurate_rnd+full_chroma_int+full_chroma_inp"
 	else:
 		filter_scale = None
 
@@ -357,19 +356,6 @@ def main():
 	filter_afadein = f"afade=t=in:st={fadein_start}:d={args.fadein}:curve=losi" if args.fadein else None
 	filter_afadeout = f"afade=t=out:st={fadeout_start}:d={args.fadeout}:curve=losi" if args.fadeout else None
 
-	# minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bilat:me=esa:search_param=32:vsbmc=1
-	ME_MODES = {
-		"fast": "hexbs",
-		"sensible": "umh",
-		"slow": "esa"
-	}
-	ME_RANGES = {
-		"fast": "8",
-		"sensible": "16",
-		"slow": "24"
-	}
-	filter_minterpolate = f"minterpolate=fps={args.slowmo_fps}:mi_mode=mci:mc_mode=aobmc:me_mode=bilat:me={ME_MODES[args.slowmo_mode]}:search_param={ME_RANGES[args.slowmo_mode]}:vsbmc=1" if args.slowmo_fps else None
-
 	filter_fps = f"fps=fps={args.framerate}" if args.framerate else None
 
 	filter_crop = f"crop={crop_width}:{crop_height}:{crop_x}:{crop_y}" if args.crop else None
@@ -398,7 +384,7 @@ def main():
 
 	opt_duration = ["-t", f"{duration_secs:.4f}"] if args.t or args.to else []
 
-	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_eq, filter_sharpen, filter_loop, filter_vfade, filter_palettegen]))
+	opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_eq, filter_sharpen, filter_loop, filter_vfade, filter_palettegen]))
 	opt_vfilter = ["-vf", opt_vfilter_joined] if opt_vfilter_joined else []
 
 	if args.youtube:
@@ -439,7 +425,7 @@ def main():
 
 	if args.gif:
 		# exporting a GIF
-		_, palette_file = mkstemp(prefix="palette_", suffix=".png")
+		_, palette_file = mkstemp(prefix="palette_", suffix=".gif")
 		ffmpeg_args = ["ffmpeg"] + opt_global + \
 						opt_input + \
 						["-c:v", args.codec] + opt_codec + \
@@ -474,7 +460,7 @@ def main():
 
 		# opt_input = ["-i", args.i, "-i", palette_file]
 
-		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_minterpolate, filter_eq, filter_sharpen, filter_vfade, filter_paletteuse]))
+		opt_vfilter_joined = ",".join(filter(None, [filter_fps, filter_fixrgb, filter_crop, filter_scale, filter_eq, filter_sharpen, filter_vfade, filter_paletteuse]))
 		opt_vfilter = ["-lavfi", opt_vfilter_joined] if opt_vfilter_joined else []
 
 		ffmpeg_args = ["ffmpeg"] + opt_global + \
