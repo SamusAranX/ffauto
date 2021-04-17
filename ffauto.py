@@ -229,7 +229,7 @@ def main():
 	parser.add_argument("-gs", "--gif-stats", type=str, default="diff", choices=["diff", "full"], help="palettegen stats_mode parameter")
 	parser.add_argument("-gt", "--gif-transparency", action="store_true", help="Enable GIF transparency")
 
-	parser.add_argument("-g", "--garbage", action="store_true", help="Garbage mode (lowers bitrate to shrink video files)")
+	parser.add_argument("-g", "--garbage", default=0, action="count", help="Garbage mode (lowers bitrate to shrink video files)")
 	parser.add_argument("--fixrgb", type=str, metavar="mode", default="0", choices=["0", "1", "2"], help="Convert TV RGB range to PC RGB range (hacky)")
 	parser.add_argument("--debug", action="store_true", help="Debug mode (displays lots of additional information)")
 
@@ -257,12 +257,20 @@ def main():
 	else:
 		duration_secs = video_info["duration"] - start_secs
 
+	if args.garbage:
+		print(f"Garbage Factor: {args.garbage}")
+		CRF_X264 = int(CRF_X264 + (args.garbage * 3))
+		CRF_X265 = int(CRF_X265 + (args.garbage * 3))
+
 	if args.youtube or args.x264:
 		args.codec = "libx264"
+		print(f"CRF: {CRF_X264}")
 	elif args.x265:
 		args.codec = "libx265"
+		print(f"CRF: {CRF_X265}")
 	elif args.nvidia:
 		args.codec = "h264_cuvid"
+		print(f"CRF: {CRF_X264}")
 	elif args.gif:
 		args.codec = "gif"
 	elif args.apng:
@@ -271,10 +279,7 @@ def main():
 		args.codec = "libwebp"
 	else:
 		args.codec = "libx264" # default codec
-
-	if args.garbage:
-		CRF_X264 = int(CRF_X264 * 1.6)
-		CRF_X265 = int(CRF_X265 * 1.6)
+		print(f"CRF: {CRF_X264}")
 
 	if args.gif or args.fast_seek:
 		# for GIF creation, fast seek needs to be enabled
