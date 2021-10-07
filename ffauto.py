@@ -489,8 +489,12 @@ def main():
 		size_binary = readable_size(out_size, binary=True)
 
 		out_msg = f"Output file size: {size_decimal}/{size_binary}"
-		if out_size < 8388120: # magic number: max allowed file size on discord
+		if out_size <= 8388119: # magic number: max allowed file size on discord
 			print(f"{out_msg} (Discord safe)")
+		elif outsize <= 52428308:
+			print(f"{out_msg} (Discord Nitro Classic safe)")
+		elif outsize <= 104856616:
+			print(f"{out_msg} (Discord Nitro safe)")
 		else:
 			print(f"{out_msg}")
 	except Exception as e:
