@@ -77,6 +77,21 @@ def parse_ffmpeg_timestamp(timestamp, debug):
 	else:
 		return 0
 
+def format_seconds_as_timestamp(seconds):
+	minutes, seconds = divmod(seconds, 60)
+	hours, minutes = divmod(minutes, 60)
+
+	def fmt_seconds(s):
+		i, d = divmod(s, 1)
+		i = int(i)
+		decimal_str = f"{d:.2g}".lstrip("0")
+		return f"{i:02d}{decimal_str}"
+
+	if hours:
+		return f"{hours:02g}:{minutes:02g}:{fmt_seconds(seconds)}"
+	else:
+		return f"{minutes:02g}:{fmt_seconds(seconds)}"
+
 def get_video_info(video, debug):
 	ffprobe_args = ["ffprobe", "-i", video,
 							# "-select_streams", "v:0",
@@ -440,11 +455,18 @@ def main():
 		print("Creating GIF palette…")
 	else:
 		# exporting a video, an APNG, or an animated WebP image
+
+		comment = f"Source: \"{args.i}\""
+		if start_secs:
+			seek_str = format_seconds_as_timestamp(start_secs)
+			comment += f", starting at {seek_str}"
+
 		ffmpeg_args = ["ffmpeg"] + opt_global + \
 						opt_hardware + opt_input + \
 						["-c:v", args.codec] + opt_codec + \
 						opt_audio + opt_afilter + \
 						opt_vfilter + opt_metadata + opt_passthrough + \
+						["-metadata", f"comment={comment}"] + \
 						["-y", args.out]
 		print("Encoding output file…")
 
