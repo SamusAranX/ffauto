@@ -456,7 +456,7 @@ def main():
 	else:
 		# exporting a video, an APNG, or an animated WebP image
 
-		comment = f"Source: \"{args.i}\""
+		comment = f"Source: \"{os.path.basename(args.i)}\""
 		if start_secs:
 			seek_str = format_seconds_as_timestamp(start_secs)
 			comment += f", starting at {seek_str}"
